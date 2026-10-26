@@ -41,7 +41,7 @@ I = imread(fullfile(P.data, 'images', [stem '.tif']));
 G = loadBBBC039Mask(fullfile(P.data, 'masks', [stem '.png']));
 In = stretch(normalizeImage(I));
 
-f = figure('Color', 'w', 'Units', 'inches', 'Position', [1 1 7.2 5.4]);
+f = newFigure(5.4);
 tl = tiledlayout(f, 2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
 ax = nexttile(tl);  imshow(In, 'Parent', ax);
 title(ax, sprintf('a  Raw image (%s)', stem(1:14)), 'FontSize', FS, 'FontWeight', 'normal', 'Interpreter', 'none');
@@ -59,9 +59,9 @@ for s = 1:3
     x = s + 0.25 * (rand(size(n)) - 0.5);
     plot(ax, x, n, 'o', 'MarkerSize', 3, 'MarkerFaceColor', C.blue, 'MarkerEdgeColor', 'none');
     plot(ax, s + [-0.2 0.2], median(n) * [1 1], 'k-', 'LineWidth', 1);
-    lbl{s} = sprintf('%s\\newline(%d images, %d nuclei)', splits{s}, numel(n), sum(n)); %#ok<AGROW>
+    lbl{s} = sprintf('%s\\newline%d images\\newline%d nuclei', splits{s}, numel(n), sum(n)); %#ok<AGROW>
 end
-set(ax, 'XTick', 1:3, 'XTickLabel', lbl, 'XLim', [0.5 3.5], 'FontSize', FS, 'Box', 'off');
+set(ax, 'XTick', 1:3, 'XTickLabel', lbl, 'XTickLabelRotation', 0, 'XLim', [0.5 3.5], 'FontSize', FS, 'Box', 'off');
 ylabel(ax, 'Annotated nuclei per image');
 title(ax, 'c  Nuclei per image by split', 'FontSize', FS, 'FontWeight', 'normal');
 
@@ -69,7 +69,7 @@ ax = nexttile(tl);
 histogram(ax, trainAreas, 0:50:3000, 'FaceColor', C.grey, 'EdgeColor', 'none');
 hold(ax, 'on');
 xline(ax, median(trainAreas), 'k--', sprintf('median %d px  (r = %.2f px)', round(median(trainAreas)), r), ...
-      'FontSize', FS, 'LabelVerticalAlignment', 'top');
+      'FontSize', FS, 'LabelVerticalAlignment', 'top', 'LabelOrientation', 'horizontal');
 set(ax, 'FontSize', FS, 'Box', 'off');
 xlabel(ax, 'Nucleus area (px), training masks');  ylabel(ax, 'Nuclei');
 title(ax, 'd  Nucleus size', 'FontSize', FS, 'FontWeight', 'normal');
@@ -93,7 +93,7 @@ if ~strcmp(p.filterType, 'none'), t2 = [t2 ' + ' p.filterType ' filter']; end
 panels = {'1  Normalized image', stretch(st.normalized); ['2-3  ' t2], stretch(st.preprocessed);
           '4  Threshold (binary mask)', st.threshold; '5  Clean-up', st.cleaned;
           '6  Watershed split', st.split};
-f = figure('Color', 'w', 'Units', 'inches', 'Position', [1 1 7.2 4.4]);
+f = newFigure(4.4);
 tl = tiledlayout(f, 2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
 for k = 1:5
     ax = nexttile(tl);
@@ -123,7 +123,7 @@ tuned = per(strcmp(per.method, 'Tuned pipeline'), :);
 base  = per(startsWith(per.method, 'Baseline'), :);
 [~, j] = ismember(tuned.image, base.image);  base = base(j, :);
 
-f = figure('Color', 'w', 'Units', 'inches', 'Position', [1 1 7.2 5.6]);
+f = newFigure(5.6);
 tl = tiledlayout(f, 2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
 
 ax = nexttile(tl);  hold(ax, 'on');
@@ -131,7 +131,7 @@ lim = max([per.n_true; per.n_auto]) * 1.05;
 plot(ax, [0 lim], [0 lim], 'k--', 'LineWidth', 0.7, 'HandleVisibility', 'off');
 scatter(ax, base.n_true, base.n_auto, 12, C.grey, 'filled');
 scatter(ax, tuned.n_true, tuned.n_auto, 14, C.blue, 'filled');
-text(ax, lim * 0.97, lim * 0.92, 'y = x', 'FontSize', FS, 'HorizontalAlignment', 'right');
+text(ax, lim * 0.97, lim * 0.84, 'y = x', 'FontSize', FS, 'HorizontalAlignment', 'right');
 axis(ax, [0 lim 0 lim]);  axis(ax, 'square');
 set(ax, 'FontSize', FS, 'Box', 'off');
 xlabel(ax, 'Annotated nuclei per image');  ylabel(ax, 'Detected nuclei per image');
@@ -160,7 +160,7 @@ for k = 1:height(others)
     if startsWith(others.method{k}, 'Baseline'), col = C.grey; else, col = C.orange; end
     plot(ax, [0 v], y(k) * [1 1], '-', 'Color', col, 'LineWidth', 1.4);
     plot(ax, v, y(k), 'o', 'Color', col, 'MarkerFaceColor', col, 'MarkerSize', 4.5);
-    if pv < 0.001, pt = 'p < 0.001'; else, pt = sprintf('p = %.2f', pv); end
+    if pv < 0.001, pt = 'p < 0.001'; elseif pv < 0.01, pt = sprintf('p = %.3f', pv); else, pt = sprintf('p = %.2f', pv); end
     text(ax, 0.004, y(k), sprintf('\\DeltaF1 = %+.3f  (%s)', v, pt), 'FontSize', FS);
 end
 set(ax, 'YTick', fliplr(y), 'YTickLabel', flipud(strrep(others.method, ...
@@ -170,6 +170,12 @@ xlabel(ax, 'Change in mean per-image F1 vs. the tuned pipeline (Wilcoxon signed-
 title(ax, 'c  Ablation: remove one step at a time', 'FontSize', FS, 'FontWeight', 'normal');
 exportgraphics(f, fullfile(P.figures, 'fig3_test_results.png'), 'Resolution', 300);
 close(f);
+end
+
+function f = newFigure(heightIn)
+% 7.2 in wide, white; R2025a+ draws figures in the desktop (often dark) theme
+f = figure('Color', 'w', 'Units', 'inches', 'Position', [1 1 7.2 heightIn]);
+if isprop(f, 'Theme'), f.Theme = 'light'; end
 end
 
 function J = stretch(I)
