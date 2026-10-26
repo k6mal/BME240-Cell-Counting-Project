@@ -1,7 +1,8 @@
 %% runDemo.m - count nuclei in one BBBC039 image and score it against the annotation
-%  Run from the matlab/ folder after scripts/download_data.sh has fetched the data.
+%  Run after scripts/download_data.sh has fetched the data.
 clear; close all;
-dataDir = fullfile('..', 'data', 'BBBC039');
+P       = projectPaths();
+dataDir = P.data;
 stems   = readSplit(dataDir, 'validation');      % any non-test image
 stem    = stems{1};
 
