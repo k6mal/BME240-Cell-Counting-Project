@@ -1,13 +1,16 @@
 function p = defaultParams()
 %DEFAULTPARAMS  Locked parameters for countCells, tuned on the BBBC039
-%   training + validation images (see python/tune_bbbc039.py and
-%   results/best_params.json). All sizes scale with the nucleus radius r.
+%   training + validation images. These are the settings the Python
+%   reference selected (results/best_params.json); runTuning.m repeats the
+%   search in MATLAB (results/matlab/best_params.json) and warns if its
+%   choice differs. All sizes scale with the nucleus radius r.
 
 p.cellRadius        = 14.13;      % r (px) = sqrt(median nucleus area / pi), training masks
 
 % Step 2: background removal
 p.useTophat         = true;
 p.tophatFactor      = 3;          % top-hat disk radius = 3 r
+p.tophatStrelN      = 4;          % strel('disk',R,N): 4 = default approximation, 0 = exact
 
 % Step 3: noise filter ('none' | 'gaussian' | 'median')
 p.filterType        = 'none';     % filtering did not help on BBBC039 (low noise)

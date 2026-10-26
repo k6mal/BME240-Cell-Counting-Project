@@ -1,7 +1,7 @@
 """
 cellcount.py - Python reference implementation of the nucleus-counting pipeline.
 
-It mirrors matlab/countCells.m step for step so results from the two languages
+It mirrors matlab/countCells.m (and its step functions) step for step so results from the two languages
 can be compared:
 
     MATLAB                         Python (this file)
@@ -16,7 +16,7 @@ can be compared:
     imopen(BW, strel('disk',1))     ndimage.binary_opening(BW, disk(1))
     bwareaopen(BW, P)               remove_small()  (keeps objects with >= P px)
     bwdist -> imgaussfilt -> imextendedmin(h)  distance_transform_edt -> gaussian -> h_maxima
-    watershed -> BW(L==0) = 0       segmentation.watershed(..., watershed_line=True)
+    watershed, restricted to BW     segmentation.watershed(..., mask=bw, watershed_line=True)
     bwconncomp(BW, 4)               measure.label(BW, connectivity=1)
     regionprops Centroid            measure.regionprops centroid
 """

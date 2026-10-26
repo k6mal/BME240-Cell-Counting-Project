@@ -5,7 +5,7 @@ function G = loadBBBC039Mask(pngPath)
 %   component of a single value. Returns G with 0 = background and
 %   1..N = individual nuclei.
 
-M = imread(pngPath);
+M = imread(pngPath);                % RGBA PNG: M is M-by-N-by-3, alpha is a separate output
 r = M(:, :, 1);
 G = zeros(size(r), 'uint16');
 offset = 0;

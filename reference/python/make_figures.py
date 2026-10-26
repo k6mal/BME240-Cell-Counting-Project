@@ -1,7 +1,7 @@
 """
 Figures for the README / progress report.
 
-Usage:  python python/make_figures.py --data data/BBBC039 --results results --out figures
+Usage:  python reference/python/make_figures.py --data data/BBBC039 --results results --out figures
 Writes: figures/fig2_pipeline_steps.png, figures/fig3_test_results.png
 """
 import argparse, json, os, sys
