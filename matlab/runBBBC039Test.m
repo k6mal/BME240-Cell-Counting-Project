@@ -1,11 +1,12 @@
 %% runBBBC039Test.m - evaluate the locked parameters on the 50 BBBC039 test images
 %  Compares the tuned pipeline with the baseline (Otsu threshold + count only)
-%  and with ablations that remove one step at a time.
-%  Requires: Image Processing Toolbox; Statistics and Machine Learning Toolbox (signrank).
+%  and with ablations that remove one step at a time. Run once, after
+%  runTuning.m has locked defaultParams.m.
+%  Writes results/matlab/test_per_image.csv and results/matlab/test_summary.csv.
+%  Requires the Image Processing Toolbox. Uses signrank (Statistics Toolbox)
+%  if it is installed, otherwise signrankTest.m.
 clear; close all;
-dataDir = fullfile('..', 'data', 'BBBC039');
-outDir  = fullfile('..', 'results', 'matlab');
-if ~exist(outDir, 'dir'), mkdir(outDir); end
+P = projectPaths();
 
 best = defaultParams();
 V = struct('name', {}, 'p', {});
@@ -18,38 +19,64 @@ if ~strcmp(best.filterType,'none'), a = best; a.filterType = 'none';   V(end+1) 
 if best.useCleanup,                a = best; a.useCleanup = false;     V(end+1) = struct('name', 'Without clean-up', 'p', a); end
 if best.useWatershed,              a = best; a.useWatershed = false;   V(end+1) = struct('name', 'Without watershed', 'p', a); end
 
-stems = sort(readSplit(dataDir, 'test'));
+stems = sort(readSplit(P.data, 'test'));
 nI = numel(stems);  nV = numel(V);
-F1 = zeros(nI, nV); NA = zeros(nI, nV); NT = zeros(nI, 1); TP = zeros(nI, nV);
+rows = cell(nI, nV);
 for i = 1:nI
-    I = imread(fullfile(dataDir, 'images', [stems{i} '.tif']));
-    G = loadBBBC039Mask(fullfile(dataDir, 'masks', [stems{i} '.png']));
+    I = imread(fullfile(P.data, 'images', [stems{i} '.tif']));
+    G = loadBBBC039Mask(fullfile(P.data, 'masks', [stems{i} '.png']));
     for v = 1:nV
         [~, ~, cents] = countCells(I, V(v).p);
         m = matchDetections(cents, G);
-        F1(i, v) = m.f1;  NA(i, v) = m.nAuto;  TP(i, v) = m.tp;  NT(i) = m.nTrue;
+        rows{i, v} = {m.nTrue, m.nAuto, m.tp, m.fp, m.fn, m.precision, m.recall, m.f1, stems{i}, V(v).name};
     end
     fprintf('%2d/%d %s\n', i, nI, stems{i});
 end
 
-absErr = abs(NA - NT);
-method = {V.name}';
-meanF1 = mean(F1)';  countMAE = mean(absErr)';
-precision = (sum(TP) ./ sum(NA))';  recall = (sum(TP) ./ sum(NT))';
-pF1 = nan(nV, 1);  pErr = nan(nV, 1);
-for v = 2:nV
-    pF1(v)  = signrank(F1(:, v), F1(:, 1));
-    pErr(v) = signrank(absErr(:, v), absErr(:, 1));
-end
-T = table(method, meanF1, precision, recall, countMAE, pF1, pErr);
-disp(T);
-writetable(T, fullfile(outDir, 'test_summary_matlab.csv'));
+% ---- per-image table (same columns as the Python reference) -------------
+rows = rows';                                  % method varies fastest, as in Python
+rows = vertcat(rows{:});
+per = cell2table(rows, 'VariableNames', {'n_true', 'n_auto', 'tp', 'fp', 'fn', ...
+                 'precision', 'recall', 'f1', 'image', 'method'});
+per.error     = per.n_auto - per.n_true;
+per.abs_error = abs(per.error);
+per.pct_error = 100 * per.abs_error ./ per.n_true;
+per.pct_error(per.n_true < 5) = NaN;           % % error only for images with >= 5 nuclei
+writetable(per, fullfile(P.results, 'test_per_image.csv'));
 
-% Automated vs annotated count
-f = figure('Color', 'w');
-plot(NT, NA(:, 2), 'o', 'Color', [0.6 0.6 0.6]); hold on
-plot(NT, NA(:, 1), 'o', 'Color', [0.12 0.37 0.6], 'MarkerFaceColor', [0.12 0.37 0.6]);
-lim = [0 max([NT; NA(:)]) + 10]; plot(lim, lim, 'k--');
-xlabel('Annotated nuclei'); ylabel('Detected nuclei'); axis square
-legend({V(2).name, V(1).name, 'y = x'}, 'Location', 'northwest');
-exportgraphics(f, fullfile(outDir, 'auto_vs_true_matlab.png'), 'Resolution', 200);
+% ---- summary ------------------------------------------------------------
+haveSignrank = exist('signrank', 'file') == 2 && license('test', 'Statistics_Toolbox');
+if haveSignrank, wtest = @(x, y) signrank(x, y); else, wtest = @signrankTest; end
+tuned = per(strcmp(per.method, V(1).name), :);
+S = cell(nV, 1);
+for v = 1:nV
+    d = per(strcmp(per.method, V(v).name), :);
+    [~, j] = ismember(tuned.image, d.image);  d = d(j, :);   % same image order
+    s.method     = V(v).name;
+    s.n_images   = height(d);
+    s.total_true = sum(d.n_true);
+    s.total_auto = sum(d.n_auto);
+    s.precision  = sum(d.tp) / sum(d.n_auto);
+    s.recall     = sum(d.tp) / sum(d.n_true);
+    s.mean_f1    = mean(d.f1);
+    s.count_mae  = mean(d.abs_error);
+    s.mape_pct   = mean(d.pct_error, 'omitnan');
+    s.bias       = mean(d.error);
+    s.loa_low    = s.bias - 1.96 * std(d.error);     % Bland-Altman limits of agreement
+    s.loa_high   = s.bias + 1.96 * std(d.error);
+    R            = corrcoef(d.n_auto, d.n_true);
+    s.r2         = R(1, 2)^2;
+    if v == 1
+        s.delta_f1_vs_tuned = NaN;  s.p_f1 = NaN;  s.p_abs_error = NaN;
+    else
+        s.delta_f1_vs_tuned = mean(d.f1 - tuned.f1);
+        s.p_f1        = wtest(d.f1, tuned.f1);
+        s.p_abs_error = wtest(d.abs_error, tuned.abs_error);
+    end
+    s.pooled_f1 = 2 * s.precision * s.recall / (s.precision + s.recall);
+    S{v} = s;
+end
+T = struct2table(vertcat(S{:}));
+disp(T(:, {'method', 'precision', 'recall', 'mean_f1', 'count_mae', 'mape_pct', 'p_f1', 'p_abs_error'}));
+writetable(T, fullfile(P.results, 'test_summary.csv'));
+if ~haveSignrank, fprintf('p values from signrankTest.m (Statistics Toolbox not found)\n'); end
