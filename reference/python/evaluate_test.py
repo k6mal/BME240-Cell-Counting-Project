@@ -5,7 +5,7 @@ Compares the tuned pipeline against (a) the baseline (Otsu threshold + connected
 components, nothing else) and (b) ablations that remove one step at a time.
 Paired Wilcoxon signed-rank tests are run on per-image F1 and absolute count error.
 
-Usage:  python python/evaluate_test.py --data data/BBBC039 --out results
+Usage:  python reference/python/evaluate_test.py --data data/BBBC039 --out results
 Writes: results/test_per_image.csv, results/test_summary.csv
 """
 import argparse, json, os, sys

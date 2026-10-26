@@ -1,7 +1,7 @@
 """
 Grid search on the BBBC039 training + validation images (test images are never touched).
 
-Usage:  python python/tune_bbbc039.py --data data/BBBC039 --out results
+Usage:  python reference/python/tune_bbbc039.py --data data/BBBC039 --out results
 Writes: results/tuning_per_image.csv, results/tuning_grid.csv, results/best_params.json
 """
 import os
