@@ -1,0 +1,1 @@
+{"config":"tophat1|none|adaptive0.02|minA0.1|h0.5s2","params":{"cellRadius":14.127289146798006,"useTophat":true,"tophatFactor":3,"tophatStrelN":4,"filterType":"none","sigma":1,"medianSize":3,"threshMethod":"adaptive","adaptWindowFactor":4,"adaptOffset":0.02,"useCleanup":true,"openRadius":1,"minAreaFrac":0.1,"useWatershed":true,"hMin":0.5,"distSigma":2}}
