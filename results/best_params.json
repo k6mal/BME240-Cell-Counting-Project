@@ -1,0 +1,20 @@
+{
+  "config": "tophat1|none|adaptive0.02|minA0.1|h0.5s2",
+  "params": {
+    "cell_radius": 14.127289146798006,
+    "use_tophat": true,
+    "tophat_factor": 3.0,
+    "filter_type": "none",
+    "sigma": 1.0,
+    "median_size": 3,
+    "thresh_method": "adaptive",
+    "adapt_window_factor": 4.0,
+    "adapt_offset": 0.02,
+    "open_radius": 1,
+    "min_area_frac": 0.1,
+    "use_cleanup": true,
+    "use_watershed": true,
+    "h_min": 0.5,
+    "dist_sigma": 2.0
+  }
+}

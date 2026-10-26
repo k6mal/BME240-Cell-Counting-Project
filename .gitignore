@@ -1,0 +1,14 @@
+# datasets are downloaded with scripts/download_data.sh, never committed
+data/
+*.zip
+# python
+__pycache__/
+*.pyc
+.venv/
+# matlab
+*.asv
+*.mat
+slprj/
+# os
+.DS_Store
+results/tuning_per_image.csv
